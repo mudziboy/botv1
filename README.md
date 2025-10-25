@@ -51,7 +51,9 @@ nvm alias default 20
 ```
 
 Tambahan:
-```npm install pakasir-client```
+```
+npm install pakasir-client
+```
 
 (didalam start sudah otomatis install, kalau gagal harap install manual)
 
@@ -63,7 +65,7 @@ sysctl -w net.ipv6.conf.all.disable_ipv6=1 \
 && apt install -y git curl dos2unix \
 && curl -L -k -sS https://raw.githubusercontent.com/mudziboy/botv1/main/start -o start \
 && dos2unix start \
-&& bash st sellvpn \
+&& bash start sellvpn \
 && [ $? -eq 0 ] && rm -f start
 ```
 
