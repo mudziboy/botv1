@@ -1,6 +1,6 @@
 ## Logger
 ```
-cat <<EOF > /root/BotVPN2/logger.js
+cat <<EOF > /root/Botv1/logger.js
 const logger = {
   info: (...args) => console.log('[INFO]', ...args),
  warn: (...args) => console.warn('[WARN]', ...args),
@@ -50,7 +50,8 @@ Jika Anda ingin menjadikan Node.js versi 20 sebagai versi default, jalankan peri
 nvm alias default 20
 ```
 
-Tambahan: npm install pakasir-client
+Tambahan:
+```npm install pakasir-client```
 
 (didalam start sudah otomatis install, kalau gagal harap install manual)
 
@@ -62,8 +63,8 @@ sysctl -w net.ipv6.conf.all.disable_ipv6=1 \
 && apt install -y git curl dos2unix \
 && curl -L -k -sS https://raw.githubusercontent.com/mudziboy/botv1/main/start -o start \
 && dos2unix start \
-&& bash start sellvpn \
+&& bash st sellvpn \
 && [ $? -eq 0 ] && rm -f start
-
+```
 
 TERIMAKASIH BUAT SEMUANYA MWAH MWAH MWAH
