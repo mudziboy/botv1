@@ -59,7 +59,7 @@ const { createssh } = require('./modules/createssh');
 const { createvmess } = require('./modules/createvmess');
 const { createvless } = require('./modules/createvless');
 const { createtrojan } = require('./modules/createtrojan');
-const { createshadowshock } = require('./modules/createshadowsocks');
+const { createshadowshocks } = require('./modules/createshadowsocks');
 // Modul RENEW
 const { renewssh } = require('./modules/renewssh');
 const { renewvmess } = require('./modules/renewvmess');
