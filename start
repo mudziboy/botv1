@@ -1,0 +1,152 @@
+#!/bin/bash
+
+# ========== Color Setup ==========
+green="\e[38;5;87m"
+red="\e[38;5;196m"
+neutral="\e[0m"
+blue="\e[38;5;130m"
+orange="\e[38;5;99m"
+yellow="\e[38;5;226m"
+bold_white="\e[1;37m"
+reset="\e[0m"
+
+# Folder bot yang digunakan dan URL repo Anda
+BOT_DIR="/root/Botv1"
+REPO_URL="https://github.com/mudziboy/botv1.git"
+BOT_PORT="50123" # Pastikan port ini sama dengan yang ada di app.js
+
+# ========== Remove Previous Bot ==========
+hapus_bot_lama() {
+  echo -e "${orange}Menghapus bot lama...${neutral}"
+  systemctl stop sellvpn.service 2>/dev/null
+  systemctl disable sellvpn.service 2>/dev/null
+  rm -f /etc/systemd/system/sellvpn.service
+  rm -f /usr/bin/sellvpn /usr/bin/server_sellvpn /etc/cron.d/server_sellvpn
+  rm -rf ${BOT_DIR}
+
+  if command -v pm2 &> /dev/null; then
+    pm2 delete sellvpn &> /dev/null
+    pm2 save &> /dev/null
+  fi
+
+  systemctl daemon-reload
+  echo -e "${green}Bot lama berhasil dihapus.${neutral}"
+}
+
+# ========== Install Dependencies ==========
+pasang_package() {
+  echo -e "${blue}Install dependensi sistem (Node.js, NPM, Git, SQLite3)...${reset}"
+
+  apt update -y
+  # Tambahkan sqlite3 karena digunakan untuk backup database dump
+  apt install -y npm nodejs curl dos2unix jq tmux git build-essential sqlite3
+
+  npm install -g pm2
+}
+
+# ========== Setup Bot ==========
+setup_bot() {
+  timedatectl set-timezone Asia/Jakarta
+
+  if [ -d ${BOT_DIR}/.git ]; then
+    echo -e "${yellow}Update repository dari Git...${reset}"
+    cd ${BOT_DIR} && git pull
+  else
+    echo -e "${green}Cloning repository bot dari ${REPO_URL}...${reset}"
+    git clone ${REPO_URL} ${BOT_DIR}
+  fi
+  
+  if [ ! -d ${BOT_DIR} ]; then
+      echo -e "${red}❌ Gagal cloning repository. Pastikan URL repo sudah benar.${neutral}"
+      exit 1
+  fi
+  cd ${BOT_DIR}
+
+  echo -e "${yellow}Convert semua script ke format Unix (LF)...${reset}"
+  find ${BOT_DIR} -type f -name "*.sh" -exec dos2unix {} \; 2>/dev/null
+  find ${BOT_DIR} -type f -name "*.js" -exec dos2unix {} \; 2>/dev/null
+
+  echo -e "${yellow}Install NPM packages (Termasuk pakasir-client dan node-cron)...${reset}"
+  # Daftar semua modul Node.js yang digunakan di app.js
+  npm install sqlite3 express crypto telegraf axios dotenv node-cron \
+    pakasir-client winston || {
+        echo -e "${red}❌ Gagal saat instalasi NPM packages.${neutral}"
+        echo -e "${yellow}⚠️ CATATAN PENTING:${reset}"
+        echo -e "${yellow}Beberapa modul mungkin gagal terinstal. Jika PM2 error, coba instal manual:${reset}"
+        echo -e "${bold_white}cd ${BOT_DIR} && npm install${reset}"
+        echo -e "${bold_white}npm install sqlite3 express telegraf axios node-cron pakasir-client winston${reset}"
+        sleep 5
+    }
+
+  chmod +x ${BOT_DIR}/*
+}
+
+# ========== Konfigurasi Firewalld/UFW ==========
+set_firewall() {
+  echo -e "${yellow}Mengaktifkan firewall...${reset}"
+  # Port default yang dibutuhkan bot: 22 (SSH), 80/443 (Web/Webhook), 50123 (Bot PM2)
+  ufw allow 22
+  ufw allow 80
+  ufw allow 443
+  ufw allow ${BOT_PORT}
+  ufw allow ${BOT_PORT}/tcp
+  ufw --force enable
+}
+
+# ========== Konfigurasi Bot ==========
+server_app() {
+  clear
+  echo -e "${orange}──────────────────────────────────────────────${neutral}"
+  echo -e "   ${green}::: KONFIGURASI BOT VPN TELEGRAM :::${neutral}"
+  echo -e "${orange}──────────────────────────────────────────────${neutral}"
+  echo -e "${yellow}Isi konfigurasi berikut untuk file ${BOT_DIR}/.vars.json${reset}"
+  echo -e "${yellow}Catatan: API Key Pakasir sudah di-hardcode di app.js.${reset}"
+  
+  read -p "Masukkan Token Bot (dari BotFather)   : " token
+  read -p "Masukkan Admin ID (ID Telegram Anda)  : " adminid
+  read -p "Masukkan ID Grup Notifikasi Telegram  : " groupid
+  read -p "Masukkan Nama Store                   : " namastore
+  
+  # Membuat .vars.json hanya dengan variabel yang tidak di-hardcode di app.js
+  cat <<EOF > ${BOT_DIR}/.vars.json
+{
+  "BOT_TOKEN": "$token",
+  "USER_ID": "$adminid",
+  "GROUP_ID": "$groupid",
+  "NAMA_STORE": "$namastore",
+  "PORT": "${BOT_PORT}"
+}
+EOF
+
+  if ! jq empty ${BOT_DIR}/.vars.json 2>/dev/null; then
+    echo -e "${red}❌ Gagal membuat file .vars.json. Cek input atau format.${neutral}"
+    exit 1
+  fi
+
+
+  # 🚀 Start PM2 bot
+    
+  echo -e "${green}Menjalankan bot dengan PM2...${reset}"
+  pm2 start app.js --name sellvpn --cwd ${BOT_DIR} --log /var/log/sellvpn.log -- start
+  pm2 save
+  pm2 startup
+
+  # 📩 Notifikasi awal ke Admin
+  curl -s -X POST https://api.telegram.org/bot$token/sendMessage \
+    -d chat_id="$adminid" \
+    -d text="✅ Bot VPN berhasil diaktifkan dan dijalankan melalui PM2!\n\nGunakan /start di bot Anda dan /menu untuk melihat menu utama."
+
+  echo -e "${green}Bot VPN telah aktif. Cek Telegram!${neutral}"
+}
+
+# ========== EXECUTOR ==========
+if [[ ${1} == "sellvpn" ]]; then
+  hapus_bot_lama
+  pasang_package
+  setup_bot
+  set_firewall
+  server_app
+else
+  echo -e "${red}Gunakan perintah: ${yellow}bash start sellvpn${neutral}"
+  exit 1
+fi
