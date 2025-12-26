@@ -1,0 +1,44 @@
+const axios = require('axios');
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./sellvpn.db');
+
+async function renewtrojan(username, exp, quota, limitip, serverId) {
+  if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
+    return { success: false, message: '❌ Username tidak valid.' };
+  }
+
+  return new Promise((resolve) => {
+    db.get('SELECT * FROM Server WHERE id = ?', [serverId], (err, server) => {
+      if (err || !server) return resolve({ success: false, message: '❌ Server tidak ditemukan.' });
+
+      const url = `http://${server.domain}:5888/renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${server.auth}`;
+      axios.get(url)
+        .then(res => {
+          if (res.data.status === "success") {
+            const data = res.data.data;
+            resolve({
+              success: true,
+              new_expired: data.exp, // Mengirim tanggal ke app.js
+              message: `
+♻️ *RENEW TROJAN PREMIUM* ♻️
+
+🔹 *Informasi Akun*
+┌─────────────────────────────
+│ Username   : \`${username}\`
+│ Kadaluarsa : \`${data.exp}\`
+│ Kuota      : \`${data.quota} GB\`
+│ Batas IP   : \`${data.limitip} IP\`
+└─────────────────────────────
+✅ Akun berhasil diperpanjang.
+`.trim()
+            });
+          } else {
+            resolve({ success: false, message: `❌ Gagal: ${res.data.message}` });
+          }
+        })
+        .catch(() => resolve({ success: false, message: '❌ Gagal menghubungi server.' }));
+    });
+  });
+}
+
+module.exports = { renewtrojan };
