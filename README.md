@@ -45,20 +45,24 @@ Anda dapat menggunakan badge ini di README.md Anda.
 ### Langkah Cepat
 
 1.  **Clone Repositori:**
-    ```bash
-    git clone [https://github.com/mudziboy/botv1.git](https://github.com/mudziboy/botv1.git) /root/Botv1
-    cd /root/Botv1
     ```
-2.  **Jalankan Skrip Instalasi:**
+    bash
+    git clone https://github.com/mudziboy/botv1
+    ```
+
+    Lanjut:
+
+    ```cd /root/botv1```
+3.  **Jalankan Skrip Instalasi:**
     Gunakan skrip `start` yang akan menginstal dependensi (Node.js, PM2, UFW) dan meminta konfigurasi esensial.
     ```bash
     bash start sellvpn
     ```
-3.  **Lengkapi `.vars.json`:**
+4.  **Lengkapi `.vars.json`:**
     Skrip `start` akan meminta input untuk `BOT_TOKEN`, `USER_ID` (Admin), `PAKASIR_API_KEY`, dan lainnya.
-4.  **Atur Webhook Pakasir:**
+5.  **Atur Webhook Pakasir:**
     Pastikan Webhook URL di Pakasir mengarah ke `https://<DOMAIN_ATAU_IP_ANDA>:<PORT_BOT>/webhook/pakasir`.
-5.  **Akses Bot:**
+6.  **Akses Bot:**
     Setelah instalasi selesai, kirim `/start` ke bot Anda di Telegram.
 
 ---
