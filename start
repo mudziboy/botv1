@@ -1,0 +1,150 @@
+#!/bin/bash
+### ============================================================
+###  BOT INSTALLER — PREMIUM LIMITED EDITION
+###  BRANDING : TUNNEL OFFICIAL #TUNV2
+### ============================================================
+
+# ========== Color Setup (Premium Theme) ========== [cite: 161]
+R="\e[38;5;196m" 
+G="\e[38;5;82m"  
+Y="\e[38;5;226m" 
+B="\e[38;5;39m"  
+C="\e[38;5;51m"  
+P="\e[38;5;207m" 
+O="\e[38;5;214m" 
+W="\e[97m"       
+BG="\e[48;5;236m" 
+N="\e[0m"
+
+# Folder bot dan URL Repo
+BOT_DIR="/root/Botv1"
+REPO_URL="https://github.com/mudziboy/botv1.git"
+BOT_PORT="50123"
+
+# Header Function
+print_header() {
+    clear
+    echo -e "${P}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+    echo -e " ${R}      █████╗ ${Y}██╗   ██╗ ${G}████████╗ ${B}██████╗ "
+    echo -e " ${O}     ██╔══██╗${C}██║   ██║${R}╚══██╔══╝${Y}██╔═══██╗"
+    echo -e " ${G}     ███████║${B}██║   ██║${P}   ██║   ${R}██║   ██║"
+    echo -e " ${Y}     ██╔══██║${G}██║   ██║${B}   ██║   ${P}██║   ██║"
+    echo -e " ${R}     ██║  ██║${Y}╚██████╔╝${G}   ██║   ${B}╚██████╔╝"
+    echo -e "${P}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+    echo -e "${BG}${W}      BOT DEPLOYMENT SYSTEM • LIMITED EDITION         ${N}"
+    echo -e "${P}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+}
+
+# ========== Remove Previous Bot ==========
+hapus_bot_lama() {
+  print_header
+  echo -e " ${O}▶${N} ${W}Cleaning up previous installation...${N}"
+  systemctl stop sellvpn.service 2>/dev/null
+  systemctl disable sellvpn.service 2>/dev/null
+  rm -f /etc/systemd/system/sellvpn.service
+  rm -rf ${BOT_DIR}
+  
+  if command -v pm2 &> /dev/null; then
+    pm2 delete sellvpn &> /dev/null
+    pm2 save &> /dev/null
+  fi
+  echo -e " ${G}✔${N} ${W}Cleanup successful.${N}"
+  sleep 1
+}
+
+# ========== Install Dependencies ==========
+pasang_package() {
+  echo -e "${P}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+  echo -e " ${B}▶${N} ${W}Installing System Dependencies...${N}"
+  apt update -y &>/dev/null
+  apt install -y npm nodejs curl dos2unix jq tmux git build-essential sqlite3 &>/dev/null
+  npm install -g pm2 &>/dev/null
+  echo -e " ${G}✔${N} ${W}Dependencies installed successfully.${N}"
+}
+
+# ========== Setup Bot Source ==========
+setup_bot() {
+  echo -e " ${C}▶${N} ${W}Downloading Bot Source Code...${N}"
+  timedatectl set-timezone Asia/Jakarta
+  
+  if [ -d ${BOT_DIR}/.git ]; then
+    cd ${BOT_DIR} && git pull &>/dev/null
+  else
+    git clone ${REPO_URL} ${BOT_DIR} &>/dev/null
+  fi
+  
+  if [ ! -d ${BOT_DIR} ]; then
+      echo -e " ${R}✘ Gagal mengunduh repository!${N}"
+      exit 1
+  fi
+  
+  cd ${BOT_DIR}
+  echo -e " ${Y}▶${N} ${W}Optimizing script formats (Unix LF)...${N}"
+  find . -type f -name "*.sh" -exec dos2unix {} \; 2>/dev/null
+  find . -maxdepth 1 -type f -name "*.js" -exec dos2unix {} \; 2>/dev/null
+  
+  echo -e " ${P}▶${N} ${W}Installing NPM Modules (Please wait)...${N}"
+  npm install sqlite3 express crypto telegraf axios dotenv node-cron pakasir-client winston --quiet
+  
+  chmod +x ${BOT_DIR}/* &>/dev/null
+  chmod +x ${BOT_DIR}/scripts/*.sh &>/dev/null
+}
+
+# ========== Konfigurasi Bot Interactive ==========
+server_app() {
+  print_header
+  echo -e "          ${BG}${W}      WIZARD KONFIGURASI BOT      ${N}"
+  echo -e "${P}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+  
+  echo -e " ${Y}1.${N} TOKEN BOT          : \c"; read token
+  echo -e " ${Y}2.${N} ADMIN ID (USER ID) : \c"; read adminid
+  echo -e " ${Y}3.${N} GROUP ID NOTIF    : \c"; read groupid
+  echo -e " ${Y}4.${N} USERNAME CHANNEL  : \c"; read channelusername
+  echo -e " ${Y}5.${N} NAMA STORE        : \c"; read namastore
+  echo -e " ${Y}6.${N} PAKASIR API KEY   : \c"; read pakasirapikey
+  echo -e " ${Y}7.${N} PAKASIR PROJECT   : \c"; read pakasirslug
+  echo -e " ${Y}8.${N} WEBHOOK URL       : \c"; read pakasirwebhookurl
+  
+  cat <<EOF > ${BOT_DIR}/.vars.json
+{
+  "BOT_TOKEN": "$token",
+  "PORT": "${BOT_PORT}",
+  "USER_ID": "$adminid",
+  "GROUP_ID": "$groupid",
+  "CHANNEL_USERNAME": "$channelusername",
+  "NAMA_STORE": "$namastore",
+  "PAKASIR_API_KEY": "$pakasirapikey",
+  "PAKASIR_PROJECT_SLUG": "$pakasirslug",
+  "PAKASIR_WEBHOOK_URL": "$pakasirwebhookurl"
+}
+EOF
+
+  echo -e "${P}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+  echo -e " ${G}▶${N} ${W}Starting Bot Service with PM2...${N}"
+  pm2 start app.js --name sellvpn --cwd ${BOT_DIR} --log /var/log/sellvpn.log &>/dev/null
+  pm2 save &>/dev/null
+  
+  # Notifikasi Telegram
+  curl -s -X POST https://api.telegram.org/bot$token/sendMessage \
+    -d chat_id="$adminid" \
+    -d text="✅ DEPLOYMENT BERHASIL!%0A%0ABot Premium Anda telah aktif di server ini." >/dev/null
+
+  echo -e " ${G}✔${N} ${W}Bot VPN telah Aktif! Silakan cek Telegram.${N}"
+  echo -e "${P}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${N}"
+}
+
+# ========== Executor ==========
+if [[ ${1} == "sellvpn" ]]; then
+  hapus_bot_lama
+  pasang_package
+  setup_bot
+  # Firewall Setup
+  if command -v ufw &> /dev/null; then
+    ufw allow 22,80,443,${BOT_PORT}/tcp &>/dev/null
+    ufw --force enable &>/dev/null
+  fi
+  server_app
+else
+  echo -e "${R}Error: Gunakan perintah 'bash start sellvpn'${N}"
+  exit 1
+fi
