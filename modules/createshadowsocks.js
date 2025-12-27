@@ -2,11 +2,15 @@ const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./sellvpn.db');
 
-async function createshadowsocks(username, exp, quota, limitip, serverId) {
-  console.log(`⚙️ Creating Shadowsocks for ${username} | Exp: ${exp} | Quota: ${quota} GB | IP Limit: ${limitip}`);
+/**
+ * Fungsi Create Shadowsocks dengan Fitur Auto-Save ke Kelola Akun
+ * @param {number} userId - ID Telegram user
+ */
+async function createshadowsocks(userId, username, exp, quota, limitip, serverId) {
+  console.log(`⚙️ Creating Shadowsocks for ${username} | UserID: ${userId} | Exp: ${exp} | Quota: ${quota} GB | IP Limit: ${limitip}`);
 
   if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
-    return '❌ Username tidak valid.';
+    return '❌ Username tidak valid. Gunakan hanya huruf dan angka tanpa spasi.';
   }
 
   return new Promise((resolve) => {
@@ -16,8 +20,7 @@ async function createshadowsocks(username, exp, quota, limitip, serverId) {
       const url = `http://${server.domain}:5888/createshadowsocks?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${server.auth}`;
 
       try {
-        const response = await axios.get(url);
-        const data = response.data;
+        const { data } = await axios.get(url);
 
         if (data.status !== 'success') return resolve(`❌ Gagal: ${data.message}`);
 
@@ -33,7 +36,7 @@ async function createshadowsocks(username, exp, quota, limitip, serverId) {
 └─────────────────────
 ┌─────────────────────
 │📦 *Quota:* ${d.quota}
-│🌍 *IP Limit:* ${d.iplimit}
+│🌍 *IP Limit:* ${d.ip_limit}
 └─────────────────────
 
 🔗 *SS WS LINK:*
@@ -45,16 +48,35 @@ ${d.ss_link_ws}
 ${d.ss_link_grpc}
 \`\`\`
 
-🔐 *Method:* \`${d.method}\`
-🧾 *Password:* \`${d.password}\`
+🔏 *PUBKEY:* \`${d.pubkey}\`
 ┌─────────────────────
 │🕒 *Expired:* \`${d.expired}\`
+│
+│📥 [Save Account](https://${d.domain}:81/shadowsocks-${d.username}.txt)
 └─────────────────────
 ✨ By : *TUNNEL OFFICIAL*! ✨
 `.trim();
 
+        // --- LOGIKA SIMPAN KE TABEL KELOLA AKUN ---
+        const saveQuery = `INSERT INTO user_accounts 
+          (user_id, protocol, username, config_detail, server_name, ip_address, expired_at) 
+          VALUES (?, ?, ?, ?, ?, ?, ?)`;
+
+        db.run(saveQuery, [
+          userId,               // ID Telegram User
+          'SHADOWSOCKS',        // Protokol
+          d.username,           // Username akun
+          msg,                  // Simpan seluruh format teks
+          server.nama_server,   // Nama server
+          server.domain,        // Domain server
+          d.expired             // Tanggal expired dari VPS
+        ], (saveErr) => {
+          if (saveErr) console.error('❌ Gagal simpan database:', saveErr.message);
+        });
+
         resolve(msg);
       } catch (e) {
+        console.error('❌ Error Shadowsocks API:', e.message);
         resolve('❌ Error Shadowsocks API');
       }
     });
