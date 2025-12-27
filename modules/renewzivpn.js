@@ -14,7 +14,7 @@ async function renewzivpn(password, exp, serverId) {
                 return resolve({ success: false, message: "❌ GAGAL! Server tidak ditemukan." });
             }
 
-            const url = `http://${server.ip}:8888/api/user/renew`;
+            const url = `http://${server.ip}:5888/api/user/renew`;
             
             try {
                 const response = await axios.post(url, {

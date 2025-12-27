@@ -4,39 +4,35 @@ const db = new sqlite3.Database('./sellvpn.db');
 
 async function renewshadowsocks(username, exp, quota, limitip, serverId) {
   if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
-    return { success: false, message: '❌ Username tidak valid.' };
+    return '❌ Username tidak valid.';
   }
 
   return new Promise((resolve) => {
     db.get('SELECT * FROM Server WHERE id = ?', [serverId], (err, server) => {
-      if (err || !server) return resolve({ success: false, message: '❌ Server tidak ditemukan.' });
+      if (err || !server) return resolve('❌ Server tidak ditemukan.');
 
       const url = `http://${server.domain}:5888/renewshadowsocks?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${server.auth}`;
       axios.get(url)
         .then(res => {
           if (res.data.status === "success") {
             const data = res.data.data;
-            resolve({
-              success: true,
-              new_expired: data.exp, // Sinkronisasi database
-              message: `
+            return resolve(`
 ♻️ *RENEW SHADOWSOCKS PREMIUM* ♻️
 
 🔹 *Informasi Akun*
 ┌─────────────────────────────
-│ Username   : \`${username}\`
+│ Username : \`${username}\`
 │ Kadaluarsa : \`${data.exp}\`
-│ Kuota      : \`${data.quota} GB\`
-│ Batas IP   : \`${data.limitip} IP\`
+│ Kuota : \`${data.quota} GB\`
+│ Batas IP : \`${data.limitip} IP\`
 └─────────────────────────────
 ✅ Akun berhasil diperpanjang.
-`.trim()
-            });
+`);
           } else {
-            resolve({ success: false, message: `❌ Gagal: ${res.data.message}` });
+            return resolve(`❌ Gagal: ${res.data.message}`);
           }
         })
-        .catch(() => resolve({ success: false, message: '❌ Gagal menghubungi server.' }));
+        .catch(() => resolve('❌ Gagal menghubungi server.'));
     });
   });
 }
